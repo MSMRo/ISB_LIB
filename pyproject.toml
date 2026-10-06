@@ -1,17 +1,18 @@
 [project]
 name = "isb-lib"
 version = "0.1.0"
-description = "Add your description here"
+description = "Librería para el análisis simbólico y gráfico de señales y sistemas en Python (Diagramas de Polos, Ceros y respuesta temporal)"
 readme = "README.md"
 authors = [
     { name = "MSMRo", email = "moises.meza@upch.pe" }
 ]
-requires-python = ">=3.12"
-dependencies = []
-
-[project.scripts]
-isb-lib = "isb_lib:main"
+requires-python = ">=3.9"
+dependencies = [
+    "matplotlib>=3.5.0",
+    "numpy>=1.20.0",
+    "sympy>=1.8.0",
+]
 
 [build-system]
-requires = ["uv_build>=0.12.13,<0.13.0"]
-build-backend = "uv_build"
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
