@@ -26,7 +26,7 @@ class ISB:
         Parámetros:
         -----------
         expr : sympy.Expr
-            Expresión simbólica en tiempo (t) o en Laplace (s).
+            Expresión simbólica en tiempo (t) o en Laplace (s), o TransferFunction.
         t_range : tuple, opcional (por defecto: (0, 10))
             Rango de tiempo (t_min, t_max) para graficar en el tiempo.
         num_pts : int, opcional (por defecto: 500)
@@ -44,14 +44,24 @@ class ISB:
         --------
         tuple: (X_s, x_t, polos, ceros)
         """
-        # Definir los símbolos de trabajo
-        t_sym = sp.symbols(var_t, real=True, positive=True)
-        s_sym = sp.symbols(var_s)
+        # Convertir objetos TransferFunction a expresiones simbólicas de SymPy si aplica
+        if hasattr(expr, "to_expr"):
+            expr = expr.to_expr()
 
-        free_syms = expr.free_symbols
+        if not isinstance(expr, sp.Basic):
+            expr = sp.sympify(expr)
+
+        free_syms = getattr(expr, "free_symbols", set())
+
+        # Definir/asociar símbolos de trabajo
+        s_match = [sym for sym in free_syms if sym.name == var_s]
+        s_sym = s_match[0] if s_match else sp.symbols(var_s)
+
+        t_match = [sym for sym in free_syms if sym.name == var_t]
+        t_sym = t_match[0] if t_match else sp.symbols(var_t, real=True, positive=True)
 
         # 1. Detectar el dominio de la expresión ingresada y convertir al otro
-        if s_sym in free_syms:
+        if any(sym.name == var_s for sym in free_syms) or s_sym in free_syms:
             X_s = sp.simplify(expr)
             try:
                 x_t = sp.inverse_laplace_transform(X_s, s_sym, t_sym)
@@ -73,8 +83,23 @@ class ISB:
             num, den = sp.fraction(X_s)
             ceros_sym = sp.solve(num, s_sym)
             polos_sym = sp.solve(den, s_sym)
-            ceros = [complex(c.evalf()) for c in ceros_sym]
-            polos = [complex(p.evalf()) for p in polos_sym]
+
+            if isinstance(ceros_sym, dict):
+                ceros_sym = list(ceros_sym.values())
+            if isinstance(polos_sym, dict):
+                polos_sym = list(polos_sym.values())
+
+            for c in ceros_sym:
+                try:
+                    ceros.append(complex(c.evalf()))
+                except Exception:
+                    pass
+
+            for p in polos_sym:
+                try:
+                    polos.append(complex(p.evalf()))
+                except Exception:
+                    pass
 
         # 3. Generar la figura con 2 subplots lado a lado
         fig, axes = plt.subplots(1, 2, figsize=figsize)
